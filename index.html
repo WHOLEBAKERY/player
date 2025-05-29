@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VERTEX Player</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-img: url('https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=1950&q=80');
+      --accent: #00ffe7;
+      --primary-glass: rgba(255,255,255,0.1);
+      --secondary-glass: rgba(255,255,255,0.2);
+      --shadow-dark: rgba(0,0,0,0.3);
+      --text-light: #eee;
+      --transition: 0.3s ease;
+    }
+    * { box-sizing: border-box; margin:0; padding:0; font-family: 'Poppins', sans-serif; }
+    body {
+      background: var(--bg-img) center/cover no-repeat;
+      height: 100vh; display: flex; align-items: center; justify-content: center;
+      color: var(--text-light);
+      flex-direction: column;
+      padding-bottom: 50px; /* leave space for footer */
+    }
+    .container {
+      width: 90%; max-width: 900px;
+      border-radius: 20px;
+      background: var(--primary-glass);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px var(--shadow-dark);
+      padding: 30px;
+      display: flex; flex-direction: column; align-items: center;
+      transition: transform var(--transition);
+      z-index: 1;
+    }
+    .container:hover { transform: translateY(-5px); }
+    h1 {
+      color: var(--accent); font-size: 2.2rem; margin-bottom: 20px;
+      text-shadow: 0 0 8px var(--accent);
+    }
+    video {
+      width: 100%; border-radius: 16px;
+      box-shadow: inset 0 4px 16px var(--shadow-dark);
+      margin-bottom: 15px;
+    }
+    #videoTitle {
+      font-size: 1.2rem; margin-bottom: 20px; font-weight: 600;
+      opacity: 0; transform: translateY(-10px);
+      transition: opacity var(--transition), transform var(--transition);
+    }
+    #videoTitle.visible {
+      opacity: 1; transform: translateY(0);
+    }
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 20px;
+    }
+    .btn {
+      position: relative; width: 60px; height: 60px;
+      border-radius: 50%; border: none; cursor: pointer;
+      background: var(--primary-glass); backdrop-filter: blur(15px);
+      box-shadow: 4px 4px 20px var(--shadow-dark), -4px -4px 20px rgba(255,255,255,0.2);
+      transition: transform var(--transition), box-shadow var(--transition);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn:hover {
+      transform: scale(1.1);
+      box-shadow: 2px 2px 10px var(--shadow-dark), -2px -2px 10px rgba(255,255,255,0.2);
+    }
+    .btn svg { width: 28px; height: 28px; fill: var(--accent); filter: drop-shadow(0 0 6px var(--accent)); }
+    .btn span {
+      position: absolute; bottom: -18px; font-size: 0.8rem;
+      background: var(--secondary-glass); padding: 2px 6px; border-radius: 4px;
+      backdrop-filter: blur(10px);
+      opacity: 0; transition: opacity var(--transition);
+    }
+    .btn:hover span { opacity: 1; }
+    #urlWrapper { position: relative; width: 100%; max-width: 800px; margin-bottom: 15px; }
+    #urlInput {
+      width: 100%; padding: 14px 50px 14px 16px;
+      border-radius: 12px; border: none;
+      background: var(--primary-glass); backdrop-filter: blur(15px);
+      box-shadow: inset 4px 4px 16px var(--shadow-dark), inset -4px -4px 16px rgba(255,255,255,0.2);
+      font-size: 1rem; color: var(--text-light);
+    }
+    #clearInput {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+    }
+    #clearInput svg { width: 20px; height: 20px; fill: var(--accent); }
+    .storage-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+    .storage-btns button {
+      padding: 10px 16px; border-radius: 12px; border: none;
+      background: var(--secondary-glass); backdrop-filter: blur(15px);
+      box-shadow: 4px 4px 16px var(--shadow-dark), -4px -4px 16px rgba(255,255,255,0.2);
+      font-weight: 500; cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .storage-btns button:hover {
+      transform: translateY(-3px);
+      box-shadow: 2px 2px 8px var(--shadow-dark), -2px -2px 8px rgba(255,255,255,0.2);
+    }
+    .collection {
+      width: 100%; max-height: 180px; overflow-y: auto;
+      background: var(--primary-glass); backdrop-filter: blur(20px);
+      border-radius: 12px; padding: 12px; margin-bottom: 20px;
+      box-shadow: inset 4px 4px 16px var(--shadow-dark);
+    }
+    .collection-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .collection-item span { cursor: pointer; font-weight: 500; }
+    .collection-item button { background: none; border: none; cursor: pointer; font-size: 1.1rem; color: var(--accent); }
+    #collectionPanel { display: none; }
+    /* Hidden file inputs */
+    #collectionUpload, #bgUploader, #themePicker { display: none; }
+
+    /* Footer styles */
+    footer.footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0,0,0,0.4);
+      text-align: center;
+      padding: 8px 0;
+      color: rgba(255,255,255,0.7);
+      font-size: 0.9rem;
+      z-index: 10;
+    }
+    footer.footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    footer.footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>VERTEX Player</h1>
+    <video id="videoPlayer" controls controlsList="nodownload"></video>
+    <div id="videoTitle">No video loaded</div>
+    <div class="controls">
+      <button id="playBtn" class="btn" title="Play">
+        <svg viewBox="0 0 64 64"><polygon points="16,12 56,32 16,52"/></svg><span>Play</span>
+      </button>
+      <button id="fsBtn" class="btn" title="Fullscreen">
+        <svg viewBox="0 0 64 64"><path d="M16 16h12v-4H12v16h4V16zm32 0v12h4V12H36v4h12zm0 32H36v4h16V36h-4v12zm-32 0v-12H12v16h16v-4H16z"/></svg><span>Full</span>
+      </button>
+      <button id="viewToggle" class="btn" title="Toggle View">
+        <svg viewBox="0 0 64 64"><rect x="8" y="16" width="48" height="32" rx="4"/><circle cx="52" cy="12" r="6"/></svg><span>View</span>
+      </button>
+      <button id="collectionToggle" class="btn" title="Library">
+        <svg viewBox="0 0 64 64"><circle cx="32" cy="20" r="12"/><rect x="16" y="36" width="32" height="16" rx="4"/></svg><span>Library</span>
+      </button>
+    </div>
+
+    <div id="urlWrapper">
+      <input id="urlInput" type="text" placeholder="Paste your MP4 URL and press Enter"/>
+      <button id="clearInput"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6"/></svg></button>
+    </div>
+
+    <div class="storage-btns">
+      <button id="clearCacheBtn">Clear Cache</button>
+      <button id="clearAllBtn">Clear All Data</button>
+      <button id="importCollectionBtn">Import Collection</button>
+      <button id="exportCollectionBtn">Export Collection</button>
+      <button id="bgUploadBtn">Change Background</button>
+      <button id="themeBtn">Change Accent</button>
+    </div>
+    <input type="file" id="collectionUpload" accept="application/json"/>
+    <input type="file" id="bgUploader" accept="image/*"/>
+    <input type="color" id="themePicker" value="#00ffe7"/>
+
+    <div id="collectionPanel" class="collection"></div>
+  </div>
+
+  <footer class="footer">
+    Hi – <a href="https://www.tiktok.com/@colereynolds4?_t=ZS-8wlVW6Ooyh8&_r=1" target="_blank" rel="noopener noreferrer">my tiktok</a>
+  </footer>
+
+  <script>
+    function parseURL(rawUrl) {
+      try {
+        const url = new URL(rawUrl);
+        let path = url.pathname.split('/')[1].substring(1);
+        let title = '';
+        if (path.includes('_')) {
+          const parts = path.split('_');
+          title = parts[1].replace(/\./g, ' ');
+          path = parts[0] + parts[2];
+        }
+        url.pathname = '/' + path;
+        return { finalUrl: url.toString(), title };
+      } catch { return null; }
+    }
+
+    const video = document.getElementById('videoPlayer');
+    const titleEl = document.getElementById('videoTitle');
+    const input = document.getElementById('urlInput');
+    const clearInput = document.getElementById('clearInput');
+    const playBtn = document.getElementById('playBtn');
+    const fsBtn = document.getElementById('fsBtn');
+    const viewToggle = document.getElementById('viewToggle');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const collectionToggle = document.getElementById('collectionToggle');
+    const collectionPanel = document.getElementById('collectionPanel');
+    const importBtn = document.getElementById('importCollectionBtn');
+    const exportBtn = document.getElementById('exportCollectionBtn');
+    const collectionUpload = document.getElementById('collectionUpload');
+    const bgUploadBtn = document.getElementById('bgUploadBtn');
+    const bgUploader = document.getElementById('bgUploader');
+    const themeBtn = document.getElementById('themeBtn');
+    const themePicker = document.getElementById('themePicker');
+
+    let collection = JSON.parse(localStorage.getItem('vertexCollection') || '[]');
+
+    function renderCollection() {
+      collectionPanel.innerHTML = '';
+      if (!collection.length) return collectionPanel.textContent = 'No items';
+      collection.forEach((item,i) => {
+        const div = document.createElement('div'); div.className='collection-item';
+        const span = document.createElement('span'); span.textContent = item.title;
+        span.onclick = () => loadVideo(item.url, item.title);
+        const btn = document.createElement('button'); btn.textContent = '❌️';
+        btn.onclick = () => { collection.splice(i,1); saveCollection(); renderCollection(); };
+        div.append(span, btn); collectionPanel.append(div);
+      });
+    }
+
+    function saveCollection() { localStorage.setItem('vertexCollection', JSON.stringify(collection)); }
+
+    function loadVideo(rawUrl, customTitle) {
+      const parsed = parseURL(rawUrl);
+      if (!parsed) return alert('Invalid URL');
+      video.src = parsed.finalUrl;
+      video.play();
+      if (parsed.title) {
+        titleEl.textContent = parsed.title;
+        titleEl.classList.add('visible');
+      }
+      if (!collection.find(c => c.url === rawUrl)) {
+        collection.push({ title: parsed.title, url: rawUrl });
+        saveCollection();
+        renderCollection();
+      }
+      localStorage.setItem('lastVideoURL', rawUrl);
+    }
+
+    playBtn.onclick = () => loadVideo(input.value.trim());
+    input.addEventListener('keydown', e => e.key === 'Enter' && playBtn.click());
+    clearInput.onclick = () => { input.value = ''; input.focus(); };
+    fsBtn.onclick = () => video.requestFullscreen && video.requestFullscreen();
+    viewToggle.onclick = () => document.body.classList.toggle('mobile-view');
+    clearCacheBtn.onclick = () => {
+      localStorage.removeItem('lastVideoURL');
+      video.pause();
+      video.src = '';
+      titleEl.classList.remove('visible');
+    };
+    clearAllBtn.onclick = () => { localStorage.clear(); location.reload(); };
+    collectionToggle.onclick = () => {
+      collectionPanel.style.display =
+        collectionPanel.style.display === 'none' ? 'block' : 'none';
+    };
+
+    importBtn.onclick = () => collectionUpload.click();
+    collectionUpload.onchange = e => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const data = JSON.parse(reader.result);
+        if (confirm('Override existing? OK=Override, Cancel=Merge')) collection = data;
+        else collection = [...collection, ...data];
+        saveCollection();
+        renderCollection();
+      };
+      reader.readAsText(e.target.files[0]);
+    };
+
+    exportBtn.onclick = () => {
+      const blob = new Blob([JSON.stringify(collection)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'vertex_collection.json';
+      a.click();
+    };
+
+    bgUploadBtn.onclick = () => bgUploader.click();
+    bgUploader.onchange = e => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.body.style.background = `url('${reader.result}') center/cover no-repeat`;
+        localStorage.setItem('vertexBg', reader.result);
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    };
+
+    themeBtn.onclick = () => themePicker.click();
+    themePicker.oninput = e => {
+      document.documentElement.style.setProperty('--accent', e.target.value);
+      localStorage.setItem('vertexAccent', e.target.value);
+    };
+
+    window.onload = () => {
+      const savedUrl = localStorage.getItem('lastVideoURL');
+      const savedBg = localStorage.getItem('vertexBg');
+      const savedAccent = localStorage.getItem('vertexAccent');
+      if (savedAccent) document.documentElement.style.setProperty('--accent', savedAccent);
+      if (savedBg) document.body.style.background = `url('${savedBg}') center/cover no-repeat`;
+      renderCollection();
+      if (savedUrl) loadVideo(savedUrl);
+    };
+  </script>
+</body>
+</html>
